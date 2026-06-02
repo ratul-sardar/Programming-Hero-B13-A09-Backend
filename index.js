@@ -55,7 +55,7 @@ async function run() {
     app.get("/explore-cars/:id", async (req, res) => {
       const { id } = req.params;
       const _id = new ObjectId(id);
-      const allCars = await carsCollection.find({ _id }).toArray();
+      const allCars = await carsCollection.findOne({ _id });
       res.send(allCars);
     });
 
