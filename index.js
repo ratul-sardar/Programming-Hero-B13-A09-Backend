@@ -39,7 +39,7 @@ async function run() {
       res.send("Hello World!");
     });
 
-    // **** All the cars collection ****
+    // **** The All cars collection ****
     app.get("/explore-cars", async (req, res) => {
       const { search, type } = req.query;
 
