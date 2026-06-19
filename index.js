@@ -65,7 +65,16 @@ async function run() {
       res.send(allCars);
     });
 
-    //
+    // ------------------------- CRUD Api ---------------------------------
+
+    // **** Add Cars to the Form ****
+    app.post("/add-cars", async (req, res) => {
+      const receivedData = await req.body;
+      console.log(receivedData);
+
+      const result = await carsCollection.insertOne(receivedData);
+      res.json(result);
+    });
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
