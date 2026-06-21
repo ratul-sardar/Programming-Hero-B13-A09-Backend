@@ -65,6 +65,14 @@ async function run() {
       res.send(allCars);
     });
 
+    // **** My added cars collection ****
+    app.get("/my-added-cars", async (req, res) => {
+      const userId = req.query.userId;
+
+      const allCars = await carsCollection.find({ owner: userId }).toArray();
+      res.send(allCars);
+    });
+
     // ------------------------- CRUD Api ---------------------------------
 
     // **** Add Cars to the Form ****
@@ -73,7 +81,7 @@ async function run() {
       console.log(receivedData);
 
       const result = await carsCollection.insertOne(receivedData);
-      res.json(result);
+      res.send(result);
     });
 
     // **** Modify the user added Cars ****
@@ -86,7 +94,7 @@ async function run() {
         { $set: data },
       );
 
-      res.json(result);
+      res.send(result);
     });
 
     // **** Delete the user added Cars ****
@@ -97,7 +105,7 @@ async function run() {
         _id: new ObjectId(id),
       });
 
-      res.json(deleteResult);
+      res.send(deleteResult);
     });
 
     // ------------------------- End of Api ---------------------------------
