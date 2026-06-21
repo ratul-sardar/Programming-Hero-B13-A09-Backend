@@ -75,6 +75,32 @@ async function run() {
       const result = await carsCollection.insertOne(receivedData);
       res.json(result);
     });
+
+    // **** Modify the user added Cars ****
+    app.patch("/edit-car/:id", async (req, res) => {
+      const { id } = req.params;
+      const data = req.body;
+
+      const result = await carsCollection.updateOne(
+        { _id: new ObjectId(id) },
+        { $set: data },
+      );
+
+      res.json(result);
+    });
+
+    // **** Delete the user added Cars ****
+    app.delete("/delete-car/:id", async (req, res) => {
+      const { id } = req.params;
+
+      const deleteResult = await carsCollection.deleteOne({
+        _id: new ObjectId(id),
+      });
+
+      res.json(deleteResult);
+    });
+
+    // ------------------------- End of Api ---------------------------------
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
