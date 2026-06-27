@@ -78,7 +78,6 @@ async function run() {
     // **** Add Cars to the Form ****
     app.post("/add-cars", async (req, res) => {
       const receivedData = await req.body;
-      console.log(receivedData);
 
       const result = await carsCollection.insertOne(receivedData);
       res.send(result);
