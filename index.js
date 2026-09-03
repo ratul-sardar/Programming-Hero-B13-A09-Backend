@@ -12,109 +12,133 @@ const port = process.env.SERVER_URI | 5000;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
-  serverApi: {
-    version: ServerApiVersion.v1,
-    strict: true,
-    deprecationErrors: true,
-  },
+	serverApi: {
+		version: ServerApiVersion.v1,
+		strict: true,
+		deprecationErrors: true,
+	},
 });
 
 async function run() {
-  try {
-    // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
-    const db = client.db("DriveFleet"); // --------- Main Database for the project ---------
-    const carsCollection = db.collection("cars"); // ---------  Cars Collection ---------
+	try {
+		// Connect the client to the server	(optional starting in v4.7)
+		await client.connect();
+		const db = client.db("DriveFleet"); // --------- Main Database for the project ---------
+		const carsCollection = db.collection("cars"); // ---------  Cars Collection ---------
+		const bookingsCollection = db.collection("bookings"); // ---------  Bookings Collection ---------
 
-    // Send a ping to confirm a successful connection
-    db.command({ ping: 1 });
-    console.log(
-      "Pinged your deployment. You successfully connected to MongoDB!",
-    );
+		// Send a ping to confirm a successful connection
+		db.command({ ping: 1 });
+		console.log(
+			"Pinged your deployment. You successfully connected to MongoDB!",
+		);
 
-    // ------------------------- API calls ---------------------------------
+		// ------------------------- API calls ---------------------------------
 
-    // **** Root directory ****
-    app.get("/", (req, res) => {
-      res.send("Hello World!");
-    });
+		// **** Root directory ****
+		app.get("/", (req, res) => {
+			res.send("Hello World!");
+		});
 
-    // **** The All cars collection ****
-    app.get("/explore-cars", async (req, res) => {
-      const { search, type } = req.query;
+		// **** The All cars collection ****
+		app.get("/explore-cars", async (req, res) => {
+			const { search, type } = req.query;
 
-      const filter = {};
-      if (search) filter.carName = { $regex: search, $options: "i" };
-      if (type) filter.carType = { $regex: type, $options: "i" };
+			const filter = {};
+			if (search) filter.carName = { $regex: search, $options: "i" };
+			if (type) filter.carType = { $regex: type, $options: "i" };
 
-      const allCars = await carsCollection.find(filter).toArray();
-      res.send(allCars);
-    });
+			const allCars = await carsCollection.find(filter).toArray();
+			res.send(allCars);
+		});
 
-    // **** Details of a single car ****
-    app.get("/explore-cars/:id", async (req, res) => {
-      const { id } = req.params;
-      const _id = new ObjectId(id);
-      const allCars = await carsCollection.findOne({ _id });
-      res.send(allCars);
-    });
+		// **** Details of a single car ****
+		app.get("/explore-cars/:id", async (req, res) => {
+			const { id } = req.params;
+			const _id = new ObjectId(id);
+			const car = await carsCollection.findOne({ _id });
+			res.send(car);
+		});
 
-    // **** Featured cars collection ****
-    app.get("/featured-cars", async (req, res) => {
-      const allCars = await carsCollection.find().limit(4).toArray();
-      res.send(allCars);
-    });
+		// **** Booking a car ****
+		app.post("/explore-cars/:id", async (req, res) => {
+			const { id } = req.params;
+			const _id = new ObjectId(id);
+			const car = await carsCollection.findOne({ _id });
 
-    // **** My added cars collection ****
-    app.get("/my-added-cars", async (req, res) => {
-      const userId = req.query.userId;
+			console.log("The car we are getting by the server component is: ", car);
 
-      const allCars = await carsCollection.find({ owner: userId }).toArray();
-      res.send(allCars);
-    });
+			if (car.availabilityStatus) {
+				const receivedData = await req.body;
+				console.log("The received data is: ", receivedData);
 
-    // ------------------------- CRUD Api ---------------------------------
+				const result = await bookingsCollection.insertOne(receivedData);
+				const testTotal = await bookingsCollection.find().toArray();
+				console.log("The test total is: ", testTotal);
 
-    // **** Add Cars to the Form ****
-    app.post("/add-cars", async (req, res) => {
-      const receivedData = await req.body;
+				// Increase the bookingCount
+				await carsCollection.updateOne({ _id }, { $inc: { bookingCount: 1 } });
 
-      const result = await carsCollection.insertOne(receivedData);
-      res.send(result);
-    });
+				res.send(result);
+			} else res.send({ message: "Car not available for booking" });
+		});
 
-    // **** Modify the user added Cars ****
-    app.patch("/edit-car/:id", async (req, res) => {
-      const { id } = req.params;
-      const data = req.body;
+		// **** Featured cars collection ****
+		app.get("/featured-cars", async (req, res) => {
+			const allCars = await carsCollection.find().limit(4).toArray();
+			res.send(allCars);
+		});
 
-      const result = await carsCollection.updateOne(
-        { _id: new ObjectId(id) },
-        { $set: data },
-      );
+		// **** My added cars collection ****
+		app.get("/my-added-cars", async (req, res) => {
+			const userId = req.query.userId;
 
-      res.send(result);
-    });
+			const allCars = await carsCollection.find({ owner: userId }).toArray();
+			res.send(allCars);
+		});
 
-    // **** Delete the user added Cars ****
-    app.delete("/delete-car/:id", async (req, res) => {
-      const { id } = req.params;
+		// ------------------------- CRUD Api ---------------------------------
 
-      const deleteResult = await carsCollection.deleteOne({
-        _id: new ObjectId(id),
-      });
+		// **** Add Cars to the Form ****
+		app.post("/add-cars", async (req, res) => {
+			const receivedData = await req.body;
 
-      res.send(deleteResult);
-    });
+			const result = await carsCollection.insertOne(receivedData);
+			res.send(result);
+		});
 
-    // ------------------------- End of Api ---------------------------------
-  } finally {
-    // Ensures that the client will close when you finish/error
-    // await client.close();
-  }
+		// **** Modify the user added Cars ****
+		app.patch("/edit-car/:id", async (req, res) => {
+			const { id } = req.params;
+			const data = req.body;
+
+			const result = await carsCollection.updateOne(
+				{ _id: new ObjectId(id) },
+				{ $set: data },
+			);
+
+			res.send(result);
+		});
+
+		// **** Delete the user added Cars ****
+		app.delete("/delete-car/:id", async (req, res) => {
+			const { id } = req.params;
+
+			const deleteResult = await carsCollection.deleteOne({
+				_id: new ObjectId(id),
+			});
+
+			res.send(deleteResult);
+		});
+
+		// ------------------------- End of Api ---------------------------------
+	} finally {
+		// Ensures that the client will close when you finish/error
+		// await client.close();
+	}
 }
 run().catch(console.dir);
 
 app.listen(port, () => {
-  console.log(`App listening on port http://localhost:${port}/`);
+	console.log(`App listening on port http://localhost:${port}/`);
 });
